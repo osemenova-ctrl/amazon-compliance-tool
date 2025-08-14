@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Інтерактивний аналізатор скарг</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Harmony (Neutral Slate/Gray with Indigo accent) -->
+    <!-- Application Structure Plan: A task-oriented single-page dashboard. The user enters complaint data into a form, which triggers an analysis. The results are displayed in a modular dashboard with sections for the complainant's profile, internal case history, external intelligence findings, and a final, clear recommendation. This structure guides the user from data input to actionable insight logically and without clutter. -->
+    <!-- Visualization & Content Choices: Report Info: Complainant details, TM, Product Name, ASIN. Goal: Analyze risk and provide action. Viz/Method: No charts needed; the data is qualitative. The app uses structured HTML/Tailwind cards to present information. Key elements are: an input form with a new Product Name field, a results dashboard with modules for internal history (HTML list), external findings (HTML list with icons), and a prominent recommendation card. Interaction: User submits form, JS processes mock data, and dynamically updates the DOM to show the analysis. Justification: This approach is direct, task-focused, and presents complex information clearly without the need for abstract charts. The added Product Name field makes the mock analysis more realistic. Library/Method: Vanilla JS and Tailwind CSS. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .form-input {
+            transition: all 0.3s ease;
+        }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.1);
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4f46e5;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-6xl">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-slate-900">Аналізатор скарг Amazon</h1>
+            <p class="text-slate-600 mt-2">Введіть дані для автоматичного аналізу та отримання рекомендацій.</p>
+        </header>
+
+        <main>
+            <div id="form-section" class="card p-6 md:p-8 mb-8">
+                <form id="complaint-form">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="complainant-name" class="block text-sm font-medium text-slate-700 mb-1">Ім'я скаржника</label>
+                            <input type="text" id="complainant-name" name="complainant-name" class="form-input block w-full border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="BrandShield Corp." required>
+                        </div>
+                        <div>
+                            <label for="complainant-email" class="block text-sm font-medium text-slate-700 mb-1">Електронна пошта скаржника</label>
+                            <input type="email" id="complainant-email" name="complainant-email" class="form-input block w-full border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="legal@brandshield.com" required>
+                        </div>
+                        <div>
+                            <label for="trademark" class="block text-sm font-medium text-slate-700 mb-1">Торговельна марка (ТМ)</label>
+                            <input type="text" id="trademark" name="trademark" class="form-input block w-full border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="US987654321" required>
+                        </div>
+                        <div>
+                            <label for="product-name" class="block text-sm font-medium text-slate-700 mb-1">Назва товару</label>
+                            <input type="text" id="product-name" name="product-name" class="form-input block w-full border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Smartphone Case" required>
+                        </div>
+                        <div>
+                            <label for="product-asin" class="block text-sm font-medium text-slate-700 mb-1">Товар (ASIN)</label>
+                            <input type="text" id="product-asin" name="product-asin" class="form-input block w-full border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="B08N5WRWNW" required>
+                        </div>
+                    </div>
+                    <div class="mt-8 text-center">
+                        <button type="submit" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-transform transform hover:scale-105">
+                            Проаналізувати скаргу
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div id="loading-section" class="hidden text-center py-12">
+                <div class="loader mx-auto"></div>
+                <p class="mt-4 text-slate-600 font-medium">Аналізуємо дані... Це може зайняти кілька секунд.</p>
+            </div>
+
+            <div id="results-section" class="hidden">
+                <div class="text-center mb-8">
+                     <h2 class="text-2xl md:text-3xl font-bold text-slate-900">Результати аналізу</h2>
+                     <p class="text-slate-600 mt-1">Зведений звіт по скаржнику <span id="result-complainant-name" class="font-semibold"></span></p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    
+                    <div id="recommendation-card" class="lg:col-span-3 card p-6 bg-indigo-50 border-2 border-indigo-200">
+                        <h3 class="text-xl font-bold text-indigo-900 flex items-center">
+                            <span class="mr-3 text-2xl">💡</span> Рекомендована дія
+                        </h3>
+                        <p id="recommendation-text" class="mt-3 text-lg text-indigo-800"></p>
+                    </div>
+                    
+                    <div class="card p-6">
+                        <h3 class="text-lg font-semibold text-slate-900 mb-4">Профіль скаржника</h3>
+                        <div id="complainant-profile" class="space-y-3 text-sm"></div>
+                    </div>
+
+                    <div class="card p-6">
+                        <h3 class="text-lg font-semibold text-slate-900 mb-4">Внутрішня історія ("Пам'ять")</h3>
+                        <p class="text-sm text-slate-600 mb-4">Цей розділ показує попередні взаємодії з цим скаржником, що зберігаються у вашій системі.</p>
+                        <div id="internal-history" class="space-y-4"></div>
+                    </div>
+
+                    <div class="card p-6">
+                        <h3 class="text-lg font-semibold text-slate-900 mb-4">Зовнішній пошук (Інтернет)</h3>
+                         <p class="text-sm text-slate-600 mb-4">Результати симуляції пошуку у відкритих джерелах для перевірки даних та репутації.</p>
+                        <div id="external-search" class="space-y-3"></div>
+                    </div>
+                </div>
+
+                <div class="mt-8 text-center">
+                    <button id="draft-email-button" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-transform transform hover:scale-105">
+                         ✨ Створити драфт відповіді
+                    </button>
+                    <div id="email-draft-container" class="mt-6 hidden">
+                        <h4 class="text-lg font-semibold text-slate-900 mb-3">Драфт листа до скаржника</h4>
+                        <textarea id="email-draft-text" class="w-full h-72 p-4 text-sm bg-slate-100 rounded-md border border-slate-300 resize-none focus:outline-none focus:border-indigo-500" readonly></textarea>
+                    </div>
+                    <div id="email-draft-loader" class="hidden text-center mt-6">
+                        <div class="loader mx-auto"></div>
+                        <p class="mt-4 text-slate-600 font-medium">Генеруємо драфт листа...</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const mockDatabase = {
+            'legal@brandshield.com': {
+                name: 'BrandShield Corp.',
+                classification: 'Агресивний, але схильний до переговорів',
+                history: [
+                    { date: '2024-11-15', tm: 'US987654321', product_name: 'Smart Lock', product_asin: 'B07VGRJDFY', outcome: 'Скаргу відкликано після прямого контакту.' },
+                    { date: '2025-03-02', tm: 'US987654321', product_name: 'Outdoor Camera', product_asin: 'B08H9B84P3', outcome: 'Апеляцію задоволено, надано рахунки-фактури.' },
+                ],
+                external_intel: {
+                    tm_validity: { status: 'valid', text: 'ТМ підтверджено в реєстрі USPTO, дійсна до 2028 року.' },
+                    reputation: { status: 'neutral', text: 'Компанія активно захищає свої ТМ, але не помічена в "патентному тролінгу".' },
+                    relation_to_product: { status: 'clear', text: 'Є офіційним виробником товару.' }
+                }
+            },
+            'claims@patentguard.net': {
+                name: 'PatentGuard LLC',
+                classification: 'Патентний троль',
+                history: [
+                    { date: '2025-01-20', tm: 'US112233445', product_name: 'Universal USB Cable', product_asin: 'B09B3V8ECV', outcome: 'Апеляцію відхилено, скарга не обґрунтована.' },
+                ],
+                external_intel: {
+                    tm_validity: { status: 'invalid', text: 'ТМ не знайдено в публічних реєстрах за вказаним номером.' },
+                    reputation: { status: 'negative', text: 'Знайдено згадки на форумах про необґрунтовані скарги від цієї компанії.' },
+                    relation_to_product: { status: 'unclear', text: 'Зв\'язок з виробництвом товару не встановлено.' }
+                }
+            }
+        };
+
+        const form = document.getElementById('complaint-form');
+        const formSection = document.getElementById('form-section');
+        const loadingSection = document.getElementById('loading-section');
+        const resultsSection = document.getElementById('results-section');
+        const draftEmailButton = document.getElementById('draft-email-button');
+        const emailDraftContainer = document.getElementById('email-draft-container');
+        const emailDraftLoader = document.getElementById('email-draft-loader');
+        
+        let currentComplaintData = null;
+
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(form);
+            const complainantEmail = formData.get('complainant-email');
+            const complainantName = formData.get('complainant-name');
+            const trademark = formData.get('trademark');
+            const productName = formData.get('product-name');
+            const productAsin = formData.get('product-asin');
+
+            resultsSection.classList.add('hidden');
+            loadingSection.classList.remove('hidden');
+
+            setTimeout(() => {
+                const mockData = mockDatabase[complainantEmail] || generateNewComplainantData(complainantName, trademark, productName, productAsin);
+                currentComplaintData = {
+                    ...mockData,
+                    complainantEmail,
+                    complainantName,
+                    trademark,
+                    productName,
+                    productAsin
+                };
+
+                displayResults(currentComplaintData);
+                
+                loadingSection.classList.add('hidden');
+                resultsSection.classList.remove('hidden');
+                window.scrollTo({ top: formSection.offsetHeight, behavior: 'smooth' });
+                
+                generateRecommendation(currentComplaintData);
+
+            }, 2000);
+        });
+        
+        draftEmailButton.addEventListener('click', function() {
+            if (currentComplaintData) {
+                generateEmailDraft(currentComplaintData);
+            }
+        });
+
+        function generateNewComplainantData(name, tm, productName, asin) {
+            return {
+                name: name,
+                classification: 'Новий скаржник',
+                history: [],
+                external_intel: {
+                    tm_validity: { status: 'neutral', text: 'Потребує ручної перевірки в реєстрах.' },
+                    reputation: { status: 'neutral', text: 'Публічної інформації про попередні скарги не знайдено.' },
+                    relation_to_product: { status: 'unclear', text: `Зв'язок з товаром '${productName}' потребує додаткового аналізу.` }
+                }
+            };
+        }
+
+        async function generateRecommendation(data) {
+            document.getElementById('recommendation-text').textContent = 'Генеруємо рекомендацію...';
+            
+            const prompt = `Ви — експерт-юрист з комплаєнсу на Amazon. На основі аналізу скарги, надайте чітку, структуровану рекомендацію щодо подальших дій. Дані для аналізу:
+            Скаржник: ${data.name}
+            Електронна пошта: ${data.complainantEmail}
+            ТМ: ${data.trademark}
+            Товар: ${data.productName} (${data.productAsin})
+            Класифікація: ${data.classification}
+            Історія скарг: ${data.history.length > 0 ? data.history.map(h => `${h.outcome} (${h.date})`).join('; ') : 'Немає попередньої історії.'}
+            Зовнішній аналіз: Валідність ТМ - ${data.external_intel.tm_validity.text}. Репутація - ${data.external_intel.reputation.text}. Зв'язок з товаром - ${data.external_intel.relation_to_product.text}.
+            Сформулюйте рекомендацію з урахуванням усіх факторів, щоб ми могли швидко вирішити проблему.`;
+            
+            try {
+                const responseText = await callGeminiAPI(prompt);
+                document.getElementById('recommendation-text').textContent = responseText;
+            } catch (error) {
+                console.error('Error generating recommendation:', error);
+                document.getElementById('recommendation-text').textContent = 'Не вдалося згенерувати рекомендацію. Спробуйте пізніше.';
+            }
+        }
+        
+        async function generateEmailDraft(data) {
+            emailDraftContainer.classList.add('hidden');
+            emailDraftLoader.classList.remove('hidden');
+
+            const prompt = `Ви — юрист. Створіть офіційний, але ввічливий драфт електронного листа до скаржника Amazon. Мета — вирішити проблему з порушенням ТМ, яке скаржник ініціював проти нашого товару. Інформація для листа:
+            Ім'я скаржника: ${data.name}
+            Електронна пошта скаржника: ${data.complainantEmail}
+            Наша компанія: (можна використовувати 'Продавець на Amazon')
+            Номер ТМ: ${data.trademark}
+            Назва товару: ${data.productName}
+            ASIN нашого товару: ${data.productAsin}
+            У листі:
+            - Почніть з ввічливого привітання.
+            - Згадайте про отриману скаргу та ідентифікуйте товар та ТМ.
+            - Запропонуйте обговорити ситуацію, щоб знайти вирішення.
+            - Запросіть скаржника відкликати скаргу після узгодження.
+            - Завершіть лист професійним підписом.
+            Створіть лише текст листа, без заголовка, використовуючи українську мову.`;
+            
+            try {
+                const responseText = await callGeminiAPI(prompt);
+                document.getElementById('email-draft-text').value = responseText;
+            } catch (error) {
+                console.error('Error generating email draft:', error);
+                document.getElementById('email-draft-text').value = 'Не вдалося згенерувати драфт листа. Спробуйте пізніше.';
+            } finally {
+                emailDraftLoader.classList.add('hidden');
+                emailDraftContainer.classList.remove('hidden');
+            }
+        }
+        
+        async function callGeminiAPI(prompt) {
+            const apiKey = "";
+            let chatHistory = [];
+            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+            const payload = { contents: chatHistory };
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+            
+            let response = null;
+            let result = null;
+            let retryCount = 0;
+            const maxRetries = 5;
+            const delay = 1000;
+
+            while (retryCount < maxRetries) {
+                try {
+                    response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    if (response.status === 429) {
+                        retryCount++;
+                        await new Promise(res => setTimeout(res, delay * Math.pow(2, retryCount)));
+                        continue;
+                    }
+
+                    result = await response.json();
+                    break;
+                } catch (error) {
+                    console.error('Fetch error:', error);
+                    throw error;
+                }
+            }
+            
+            if (result && result.candidates && result.candidates.length > 0 &&
+                result.candidates[0].content && result.candidates[0].content.parts &&
+                result.candidates[0].content.parts.length > 0) {
+                return result.candidates[0].content.parts[0].text;
+            } else {
+                throw new Error('Unexpected API response structure or content missing.');
+            }
+        }
+
+        function displayResults(data) {
+            document.getElementById('result-complainant-name').textContent = data.complainantName;
+            
+            const profileContainer = document.getElementById('complainant-profile');
+            profileContainer.innerHTML = `
+                <p><span class="font-semibold text-slate-600">Ім'я:</span> ${data.complainantName}</p>
+                <p><span class="font-semibold text-slate-600">Email:</span> ${data.complainantEmail}</p>
+                <p><span class="font-semibold text-slate-600">Заявлена ТМ:</span> ${data.trademark}</p>
+                <p><span class="font-semibold text-slate-600">Товар:</span> ${data.productName}</p>
+                <p><span class="font-semibold text-slate-600">Товар (ASIN):</span> ${data.productAsin}</p>
+                <div class="mt-3 pt-3 border-t">
+                    <p class="font-semibold text-slate-600">Класифікація:</p>
+                    <span class="inline-block px-3 py-1 text-sm font-semibold rounded-full ${getBadgeColor(data.classification)}">
+                        ${data.classification}
+                    </span>
+                </div>
+            `;
+
+            const historyContainer = document.getElementById('internal-history');
+            if (data.history.length > 0) {
+                historyContainer.innerHTML = data.history.map(item => `
+                    <div class="p-3 bg-slate-50 rounded-md border border-slate-200">
+                        <p class="font-semibold text-sm">${item.date} - ${item.product_name}</p>
+                        <p class="text-xs text-slate-600 mt-1">${item.outcome}</p>
+                    </div>
+                `).join('');
+            } else {
+                historyContainer.innerHTML = '<p class="text-sm text-slate-500">Попередніх скарг від цього скаржника у базі не знайдено.</p>';
+            }
+
+            const externalContainer = document.getElementById('external-search');
+            const intel = data.external_intel;
+            externalContainer.innerHTML = `
+                <div class="flex items-start">
+                    <span class="mr-3 mt-1">${getIcon(intel.tm_validity.status)}</span>
+                    <div>
+                        <p class="font-semibold text-sm">Перевірка ТМ</p>
+                        <p class="text-xs text-slate-600">${intel.tm_validity.text}</p>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <span class="mr-3 mt-1">${getIcon(intel.reputation.status)}</span>
+                    <div>
+                        <p class="font-semibold text-sm">Репутація</p>
+                        <p class="text-xs text-slate-600">${intel.reputation.text}</p>
+                    </div>
+                </div>
+                 <div class="flex items-start">
+                    <span class="mr-3 mt-1">${getIcon(intel.relation_to_product.status)}</span>
+                    <div>
+                        <p class="font-semibold text-sm">Зв'язок з товаром</p>
+                        <p class="text-xs text-slate-600">${intel.relation_to_product.text}</p>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('recommendation-text').textContent = '';
+            document.getElementById('email-draft-text').value = '';
+            emailDraftContainer.classList.add('hidden');
+        }
+
+        function getBadgeColor(classification) {
+            if (classification.includes('Агресивний')) return 'bg-yellow-100 text-yellow-800';
+            if (classification.includes('троль')) return 'bg-red-100 text-red-800';
+            if (classification.includes('Новий')) return 'bg-blue-100 text-blue-800';
+            return 'bg-slate-100 text-slate-800';
+        }
+
+        function getIcon(status) {
+            if (status === 'valid' || status === 'clear') return '<span class="text-green-500 text-lg">✔</span>';
+            if (status === 'invalid' || status === 'negative') return '<span class="text-red-500 text-lg">✖</span>';
+            return '<span class="text-slate-400 text-lg">?</span>';
+        }
+    </script>
+
+</body>
+</html>
