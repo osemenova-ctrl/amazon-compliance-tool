@@ -9,8 +9,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Chosen Palette: Calm Harmony (Neutral Slate/Gray with Indigo accent) -->
-    <!-- Application Structure Plan: A task-oriented single-page dashboard. The user enters complaint data into a form, which triggers an analysis. The results are displayed in a modular dashboard with sections for the complainant's profile, internal case history, external intelligence findings, and a final, clear recommendation. This structure guides the user from data input to actionable insight logically and without clutter. -->
-    <!-- Visualization & Content Choices: Report Info: Complainant details, TM, Product Name, ASIN. Goal: Analyze risk and provide action. Viz/Method: No charts needed; the data is qualitative. The app uses structured HTML/Tailwind cards to present information. Key elements are: an input form with a new Product Name field, a results dashboard with modules for internal history (HTML list), external findings (HTML list with icons), and a prominent recommendation card. Interaction: User submits form, JS processes mock data, and dynamically updates the DOM to show the analysis. Justification: This approach is direct, task-focused, and presents complex information clearly without the need for abstract charts. The added Product Name field makes the mock analysis more realistic. Library/Method: Vanilla JS and Tailwind CSS. -->
+    <!-- Application Structure Plan: A task-oriented single-page dashboard. The user enters complaint data into a form, which triggers an analysis. The results are displayed in a modular dashboard with sections for the complainant's profile, internal case history, external intelligence findings, and a final, clear recommendation. The recommendation section has been updated to dynamically render structured text from the LLM, including headings and lists, to improve readability and user understanding. -->
+    <!-- Visualization & Content Choices: Report Info: Complainant details, TM, Product Name, ASIN. Goal: Analyze risk and provide action. Viz/Method: No charts needed; the data is qualitative. The app uses structured HTML/Tailwind cards to present information. Key elements are: an input form with a new Product Name field, a results dashboard with modules for internal history (HTML list), external findings (HTML list with icons), and a prominent recommendation card. The recommendation card now uses a JS function to convert Markdown-like text from the LLM into proper HTML for better readability. Interaction: User submits form, JS processes mock data, and dynamically updates the DOM to show the analysis. Justification: This approach is direct, task-focused, and presents complex information clearly without the need for abstract charts. The Markdown-to-HTML conversion is a critical enhancement for user comprehension. Library/Method: Vanilla JS and Tailwind CSS. -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
         body {
@@ -59,7 +59,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label for="complainant-name" class="block text-sm font-medium text-slate-700 mb-1">Ім'я скаржника</label>
-                            <input type="text" id="complainant-name" name="complainant-name" class="form-input block w-full border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="BrandShield Corp." required>
+                            <input type="text" id="complainant-name" name="complainant-name" class="form-input block w-full border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Hasmeet Singh" required>
                         </div>
                         <div>
                             <label for="complainant-email" class="block text-sm font-medium text-slate-700 mb-1">Електронна пошта скаржника</label>
@@ -67,15 +67,15 @@
                         </div>
                         <div>
                             <label for="trademark" class="block text-sm font-medium text-slate-700 mb-1">Торговельна марка (ТМ)</label>
-                            <input type="text" id="trademark" name="trademark" class="form-input block w-full border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="US987654321" required>
+                            <input type="text" id="trademark" name="trademark" class="form-input block w-full border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="815141653" required>
                         </div>
                         <div>
                             <label for="product-name" class="block text-sm font-medium text-slate-700 mb-1">Назва товару</label>
-                            <input type="text" id="product-name" name="product-name" class="form-input block w-full border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Smartphone Case" required>
+                            <input type="text" id="product-name" name="product-name" class="form-input block w-full border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="CUSHIONAIRE Women's Barbi Kitten Heel Bootie" required>
                         </div>
                         <div>
                             <label for="product-asin" class="block text-sm font-medium text-slate-700 mb-1">Товар (ASIN)</label>
-                            <input type="text" id="product-asin" name="product-asin" class="form-input block w-full border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="B08N5WRWNW" required>
+                            <input type="text" id="product-asin" name="product-asin" class="form-input block w-full border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="B0CMJXJL2B" required>
                         </div>
                     </div>
                     <div class="mt-8 text-center">
@@ -103,7 +103,7 @@
                         <h3 class="text-xl font-bold text-indigo-900 flex items-center">
                             <span class="mr-3 text-2xl">💡</span> Рекомендована дія
                         </h3>
-                        <p id="recommendation-text" class="mt-3 text-lg text-indigo-800"></p>
+                        <div id="recommendation-text" class="prose max-w-none mt-3 text-lg text-indigo-800"></div>
                     </div>
                     
                     <div class="card p-6">
@@ -154,6 +154,16 @@
                     tm_validity: { status: 'valid', text: 'ТМ підтверджено в реєстрі USPTO, дійсна до 2028 року.' },
                     reputation: { status: 'neutral', text: 'Компанія активно захищає свої ТМ, але не помічена в "патентному тролінгу".' },
                     relation_to_product: { status: 'clear', text: 'Є офіційним виробником товару.' }
+                }
+            },
+            'mattel.ip-team@incoproip.com': {
+                name: 'Hasmeet Singh',
+                classification: 'Новий скаржник',
+                history: [],
+                external_intel: {
+                    tm_validity: { status: 'unclear', text: 'Потребує ручної перевірки в реєстрах.' },
+                    reputation: { status: 'neutral', text: 'Публічної інформації про попередні скарги не знайдено.' },
+                    relation_to_product: { status: 'unclear', text: 'Зв\'язок з товаром потребує додаткового аналізу.' }
                 }
             },
             'claims@patentguard.net': {
@@ -227,7 +237,7 @@
                 classification: 'Новий скаржник',
                 history: [],
                 external_intel: {
-                    tm_validity: { status: 'neutral', text: 'Потребує ручної перевірки в реєстрах.' },
+                    tm_validity: { status: 'unclear', text: 'Потребує ручної перевірки в реєстрах.' },
                     reputation: { status: 'neutral', text: 'Публічної інформації про попередні скарги не знайдено.' },
                     relation_to_product: { status: 'unclear', text: `Зв'язок з товаром '${productName}' потребує додаткового аналізу.` }
                 }
@@ -235,10 +245,10 @@
         }
 
         async function generateRecommendation(data) {
-            document.getElementById('recommendation-text').textContent = 'Генеруємо рекомендацію...';
+            document.getElementById('recommendation-text').innerHTML = '<p>Генеруємо рекомендацію...</p>';
             
-            const prompt = `Ви — експерт-юрист з комплаєнсу на Amazon. На основі аналізу скарги, надайте чітку, структуровану рекомендацію щодо подальших дій. Дані для аналізу:
-            Скаржник: ${data.name}
+            const prompt = `Ви — експерт-юрист з комплаєнсу на Amazon. На основі аналізу скарги, надайте чітку, структуровану рекомендацію щодо подальших дій. Використовуйте маркдаун для форматування (заголовки, жирний текст, списки). Дані для аналізу:
+            Скаржник: ${data.complainantName}
             Електронна пошта: ${data.complainantEmail}
             ТМ: ${data.trademark}
             Товар: ${data.productName} (${data.productAsin})
@@ -249,10 +259,10 @@
             
             try {
                 const responseText = await callGeminiAPI(prompt);
-                document.getElementById('recommendation-text').textContent = responseText;
+                document.getElementById('recommendation-text').innerHTML = parseMarkdown(responseText);
             } catch (error) {
                 console.error('Error generating recommendation:', error);
-                document.getElementById('recommendation-text').textContent = 'Не вдалося згенерувати рекомендацію. Спробуйте пізніше.';
+                document.getElementById('recommendation-text').innerHTML = '<p>Не вдалося згенерувати рекомендацію. Спробуйте пізніше.</p>';
             }
         }
         
@@ -261,7 +271,7 @@
             emailDraftLoader.classList.remove('hidden');
 
             const prompt = `Ви — юрист. Створіть офіційний, але ввічливий драфт електронного листа до скаржника Amazon. Мета — вирішити проблему з порушенням ТМ, яке скаржник ініціював проти нашого товару. Інформація для листа:
-            Ім'я скаржника: ${data.name}
+            Ім'я скаржника: ${data.complainantName}
             Електронна пошта скаржника: ${data.complainantEmail}
             Наша компанія: (можна використовувати 'Продавець на Amazon')
             Номер ТМ: ${data.trademark}
@@ -387,7 +397,7 @@
                 </div>
             `;
             
-            document.getElementById('recommendation-text').textContent = '';
+            document.getElementById('recommendation-text').innerHTML = '';
             document.getElementById('email-draft-text').value = '';
             emailDraftContainer.classList.add('hidden');
         }
@@ -403,6 +413,47 @@
             if (status === 'valid' || status === 'clear') return '<span class="text-green-500 text-lg">✔</span>';
             if (status === 'invalid' || status === 'negative') return '<span class="text-red-500 text-lg">✖</span>';
             return '<span class="text-slate-400 text-lg">?</span>';
+        }
+
+        function parseMarkdown(text) {
+            let html = text;
+            
+            html = html.replace(/^###\s(.*)$/gm, '<h3>$1</h3>');
+            html = html.replace(/^##\s(.*)$/gm, '<h2>$1</h2>');
+            html = html.replace(/^#\s(.*)$/gm, '<h1>$1</h1>');
+            
+            html = html.replace(/^\*\s(.*)$/gm, '<li>$1</li>');
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            
+            const lines = html.split('\n');
+            let result = '';
+            let inList = false;
+
+            for (const line of lines) {
+                if (line.startsWith('<li>')) {
+                    if (!inList) {
+                        result += '<ul>';
+                        inList = true;
+                    }
+                    result += line;
+                } else {
+                    if (inList) {
+                        result += '</ul>';
+                        inList = false;
+                    }
+                    if (line.startsWith('<h') || line.startsWith('</h')) {
+                        result += line;
+                    } else if (line.trim() !== '') {
+                        result += `<p>${line}</p>`;
+                    }
+                }
+            }
+
+            if (inList) {
+                result += '</ul>';
+            }
+
+            return result;
         }
     </script>
 
